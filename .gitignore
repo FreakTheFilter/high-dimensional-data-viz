@@ -1,6 +1,8 @@
 data/
+smalldata/
 env/
 __pycache__/
 
 
 *swp
+*zip

@@ -1,5 +1,7 @@
 <title>Data Viz</title>
 
-<div>
-  Hello world
-</div>
+<form enctype="multipart/form-data" action="/upload/image" method="post">
+  <input id="zip-file" type="file" name="zipfile" />
+</form>
+
+<script type="text/javascript" src="{{ url_for('static', filename = 'index.js') }}"></script>

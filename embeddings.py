@@ -9,15 +9,6 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 
 
-def stream_images(paths):
-  '''Read in all images from args[0], a list of image paths'''
-  for idx, path in enumerate(paths):
-    try:
-      yield load_img(path)
-    except Exception as exc:
-      print('Image at path ', path, 'could not be processed --', exc)
-
-
 def get_image_embeddings(paths):
   # Load the model. Currently using an Inception model but this is probably
   # slow, see if we can use a distilled model.
@@ -29,19 +20,19 @@ def get_image_embeddings(paths):
       image = load_img(path)
     except Exception as exc:
       print('Image at path ', path, 'could not be processed --', exc)
-      return None
+      return None, None
     preprocessed_image = preprocess_input(
       img_to_array(image.resize((299, 299))))
-    return model.predict(np.expand_dims(preprocessed_image, 0)).squeeze()
+    return model.predict(np.expand_dims(preprocessed_image, 0)).squeeze(), path
 
   paths_df = pd.Series(paths)
 
   start = time.time()
-  embeddings = paths_df.map(get_embedding_).dropna()
+  embeddings_filepaths = paths_df.map(get_embedding_).dropna()
   stop = time.time()
 
   print("Time taken: ", stop - start)
-  return embeddings.to_numpy()
+  return embeddings_filepaths
 
 
 if __name__ == '__main__':
