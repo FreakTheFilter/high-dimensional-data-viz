@@ -1,5 +1,4 @@
 import glob
-import time
 
 import numpy as np
 import pandas as pd
@@ -26,12 +25,7 @@ def get_image_embeddings(paths):
     return model.predict(np.expand_dims(preprocessed_image, 0)).squeeze(), path
 
   paths_df = pd.Series(paths)
-
-  start = time.time()
   embeddings_filepaths = paths_df.map(get_embedding_).dropna()
-  stop = time.time()
-
-  print("Time taken: ", stop - start)
   return embeddings_filepaths
 
 

@@ -2,6 +2,7 @@ data/
 smalldata/
 env/
 __pycache__/
+serverdata/
 
 
 *swp
