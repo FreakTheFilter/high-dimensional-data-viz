@@ -1,6 +1,4 @@
 (function() {
-  console.log("Test");
-
   function createGraph(graph) {
     var svg = d3.select("svg"),
       width = +svg.attr("width"),
@@ -14,18 +12,24 @@
           return d.id;
         })
       )
-      .force("charge", d3.forceManyBody().strength(-500))
+      .force("charge", d3.forceManyBody())
       .force("center", d3.forceCenter(width / 2, height / 2));
 
-    var link = svg
+    actual_links = graph.links.filter(l => {
+      return l.weight > 0.85;
+    });
+
+    var g = svg.append("g");
+
+    var link = g
       .append("g")
       .attr("class", "links")
       .selectAll("line")
-      .data(graph.links)
+      .data(actual_links)
       .enter()
       .append("line");
 
-    var node = svg
+    var node = g
       .append("g")
       .attr("class", "nodes")
       .selectAll("circle")
@@ -47,7 +51,11 @@
 
     simulation.nodes(graph.nodes).on("tick", ticked);
 
-    simulation.force("link").links(graph.links);
+    simulation.force("link").links(actual_links);
+
+    // Drag/Zoom
+    var zoom_handler = d3.zoom().on("zoom", zoom_actions);
+    zoom_handler(g);
 
     function ticked() {
       link
@@ -89,6 +97,10 @@
       d.fx = null;
       d.fy = null;
     }
+
+    function zoom_actions() {
+      g.attr("transform", d3.event.transform);
+    }
   }
 
   const handleZipUpload = event => {
@@ -105,7 +117,6 @@
         console.log("Successful upload. JSON Graph lives at: ", json_path);
 
         $.getJSON("/path/" + json_path, function(graph) {
-          console.log(graph);
           createGraph(graph);
         });
       })
