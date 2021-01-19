@@ -1,106 +1,82 @@
 (function() {
-  function createGraph(graph) {
-    var svg = d3.select("svg"),
-      width = +svg.attr("width"),
-      height = +svg.attr("height");
+  function loadImage(filepath, position) {
+    const map = new THREE.TextureLoader().load("path/" + filepath);
+    const material = new THREE.SpriteMaterial({ map: map, color: 0xffffff });
+    const sprite = new THREE.Sprite(material);
+    sprite.position.set(position[0], position[1], position[2]);
+    return sprite;
+  }
 
-    var simulation = d3
-      .forceSimulation()
-      .force(
-        "link",
-        d3.forceLink().id(function(d) {
-          return d.id;
-        })
-      )
-      .force("charge", d3.forceManyBody())
-      .force("center", d3.forceCenter(width / 2, height / 2));
+  function createVisual(data) {
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
 
-    actual_links = graph.links.filter(l => {
-      return l.weight > 0.85;
-    });
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth / 2, window.innerHeight / 2);
+    document.body.appendChild(renderer.domElement);
 
-    var g = svg.append("g");
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-    var link = g
-      .append("g")
-      .attr("class", "links")
-      .selectAll("line")
-      .data(actual_links)
-      .enter()
-      .append("line");
+    for (let idx in data["filepaths"]) {
+      const sprite = loadImage(
+        data["filepaths"][idx],
+        data["projections"][idx]
+      );
+      scene.add(sprite);
+    }
 
-    var node = g
-      .append("g")
-      .attr("class", "nodes")
-      .selectAll("circle")
-      .data(graph.nodes)
-      .enter()
-      .append("circle")
-      .attr("r", 2.5)
-      .call(
-        d3
-          .drag()
-          .on("start", dragstarted)
-          .on("drag", dragged)
-          .on("end", dragended)
+    const cameraStart = data["projections"][0];
+    controls.target.set(cameraStart[0], cameraStart[1], cameraStart[2]);
+    controls.update();
+
+    const animate = function() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    };
+
+    var raycaster = new THREE.Raycaster(); // create once
+    var mouse = new THREE.Vector2(); // create once
+
+    const onDocumentMouseDown = event => {
+      event.preventDefault();
+      mouse.set(
+        (event.clientX / window.innerWidth) * 2 * 2 - 1,
+        -((event.clientY / window.innerHeight) * 2) * 2 + 1
       );
 
-    node.append("title").text(function(d) {
-      return d.id;
-    });
+      raycaster.setFromCamera(mouse, camera);
 
-    simulation.nodes(graph.nodes).on("tick", ticked);
+      const intersects = raycaster.intersectObjects(scene.children);
+      console.log(scene.children);
+      console.log(intersects);
+      if (intersects.length > 0) {
+        controls.target.set(
+          intersects[intersects.length - 1].object.position.x,
+          intersects[intersects.length - 1].object.position.y,
+          intersects[intersects.length - 1].object.position.z
+        );
+        controls.update();
+      }
+      scene.add(
+        new THREE.ArrowHelper(
+          raycaster.ray.direction,
+          raycaster.ray.origin,
+          300,
+          0xff0000
+        )
+      );
 
-    simulation.force("link").links(actual_links);
+      renderer.render(scene, camera);
+    };
+    document.addEventListener("click", onDocumentMouseDown, false);
 
-    // Drag/Zoom
-    var zoom_handler = d3.zoom().on("zoom", zoom_actions);
-    zoom_handler(g);
-
-    function ticked() {
-      link
-        .attr("x1", function(d) {
-          return d.source.x;
-        })
-        .attr("y1", function(d) {
-          return d.source.y;
-        })
-        .attr("x2", function(d) {
-          return d.target.x;
-        })
-        .attr("y2", function(d) {
-          return d.target.y;
-        });
-
-      node
-        .attr("cx", function(d) {
-          return d.x;
-        })
-        .attr("cy", function(d) {
-          return d.y;
-        });
-    }
-
-    function dragstarted(d) {
-      if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-      d.fx = d.x;
-      d.fy = d.y;
-    }
-
-    function dragged(d) {
-      d.fx = d3.event.x;
-      d.fy = d3.event.y;
-    }
-
-    function dragended(d) {
-      if (!d3.event.active) simulation.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
-    }
-
-    function zoom_actions() {
-      g.attr("transform", d3.event.transform);
-    }
+    animate();
   }
 
   const handleZipUpload = event => {
@@ -116,8 +92,9 @@
       .then(json_path => {
         console.log("Successful upload. JSON Graph lives at: ", json_path);
 
-        $.getJSON("/path/" + json_path, function(graph) {
-          createGraph(graph);
+        $.getJSON("/path/" + json_path, function(data) {
+          console.log("Passed data: ", data);
+          createVisual(data);
         });
       })
       .catch(error => {

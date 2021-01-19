@@ -6,6 +6,7 @@ from tensorflow.keras.applications import InceptionV3
 from tensorflow.keras.applications.inception_v3 import preprocess_input
 from tensorflow.keras.models import Model
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
+import umap
 
 
 def get_image_embeddings(paths):
@@ -27,6 +28,12 @@ def get_image_embeddings(paths):
   paths_df = pd.Series(paths)
   embeddings_filepaths = paths_df.map(get_embedding_).dropna()
   return embeddings_filepaths
+
+
+def run_umap(embeddings):
+  reducer = umap.UMAP(n_components=3)
+  return reducer.fit_transform(
+    pd.DataFrame(embeddings.values.tolist(), index=embeddings.index))
 
 
 if __name__ == '__main__':

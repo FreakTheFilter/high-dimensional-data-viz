@@ -8,20 +8,11 @@
   <input id="zip-file" type="file" name="zipfile" />
 </form>
 
-<style>
-  .links line {
-    stroke: #aaa;
-  }
-
-  .nodes circle {
-    pointer-events: all;
-    stroke: none;
-    stroke-width: 40px;
-  }
-</style>
-<svg width="1000" height="1000"></svg>
-<script src="https://d3js.org/d3.v4.min.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r124/three.min.js"></script>
+<script
+  type="text/javascript"
+  src="{{ url_for('static', filename = 'orbit.js') }}"
+></script>
 <script
   type="text/javascript"
   src="{{ url_for('static', filename = 'index.js') }}"

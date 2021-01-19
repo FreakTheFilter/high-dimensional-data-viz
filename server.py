@@ -15,7 +15,7 @@ import zipfile
 DATA_PATH = '/home/amol/tmp/extracted/'
 ZIP_PATH = '/home/amol/tmp/zip/'
 CACHED_EMBEDDING_FILE = 'cached_embeddings.pkl'
-CACHED_JSON_FILE = 'cached_graph.json'
+CACHED_JSON_FILE = 'cached_data.json'
 ALLOWED_EXTENSIONS = {'zip'}
 IMAGE_TYPES = {'*.jpg', '*.png', '*.jpeg'}
 
@@ -85,8 +85,6 @@ def upload_(req, load_cached=False):
   cached_extract_path = get_last_cached_version(DATA_PATH, filename)
   if (cached_extract_path and load_cached):
     print("Loading cached version.")
-    with open(os.path.join(cached_extract_path, CACHED_JSON_FILE)) as json_file:
-      data = json.load(json_file)
   else:
     start = time.time()
     save_path = get_untaken_file(ZIP_PATH, filename)
@@ -111,32 +109,25 @@ def upload_(req, load_cached=False):
       print("Path: ", image_glob)
       image_paths.extend(glob.glob(image_glob, recursive=True))
 
-    # Get the embeddings, then cache them.
+    # Get the embeddings, and the projections, then cache them.
     start = time.time()
     embeddings_filepaths = embeddings_lib.get_image_embeddings(image_paths)
-    embeddings_filepaths.to_pickle(
-      os.path.join(extract_path, CACHED_EMBEDDING_FILE))
     stop = time.time()
     print("Got embeddings: ", stop - start)
 
-    # Build the networkx graph.
     start = time.time()
     df = pd.DataFrame()
-    embeddings, df['filepaths'] = zip(*embeddings_filepaths)
-    similarities = cosine_similarity(embeddings)
-    similarities[similarities < 0.7] = 0
-    graph = nx.from_numpy_matrix(similarities)
-    nx.set_node_attributes(graph, df['filepaths'].to_dict(), 'filepaths')
+    df['embeddings'], df['filepaths'] = zip(*embeddings_filepaths)
+    projections = embeddings_lib.run_umap(df['embeddings'])
+    df['projections'] = pd.Series(list(projections), index=df.index)
+    df.to_pickle(
+      os.path.join(extract_path, CACHED_EMBEDDING_FILE))
+    stop = time.time()
+    print("Got projections: ", stop - start)
 
     # Return a json and save it.
-    data = nx.node_link_data(graph)
-    stop = time.time()
-    print("Built graph: ", stop - start)
-    end_total = time.time()
-    print("Total time: ", end_total - start_total)
-    with open(os.path.join(extract_path, CACHED_JSON_FILE), 'w') as outfile:
-      json.dump(data, outfile)
-      cached_extract_path = extract_path
+    cached_extract_path = extract_path
+    df.to_json(os.path.join(extract_path, CACHED_JSON_FILE))
 
   return jsonify(os.path.join(cached_extract_path, CACHED_JSON_FILE))
 
@@ -170,7 +161,7 @@ def main():
   if not os.path.exists(DATA_PATH):
     os.makedirs(DATA_PATH)
 
-  app.run(debug=True, port=5001)
+  app.run(debug=True, port=5000)
 
 
 # Upload images.
