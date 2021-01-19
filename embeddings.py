@@ -1,4 +1,5 @@
 import glob
+import math
 
 import numpy as np
 import pandas as pd
@@ -7,6 +8,7 @@ from tensorflow.keras.applications.inception_v3 import preprocess_input
 from tensorflow.keras.models import Model
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 import umap
+import rasterfairy
 
 
 def get_image_embeddings(paths):
@@ -30,10 +32,16 @@ def get_image_embeddings(paths):
   return embeddings_filepaths
 
 
-def run_umap(embeddings):
-  reducer = umap.UMAP(n_components=3)
+def run_umap(embeddings, components=3):
+  reducer = umap.UMAP(n_components=components)
   return reducer.fit_transform(
     pd.DataFrame(embeddings.values.tolist(), index=embeddings.index))
+
+
+def run_rasterfairy(projections):
+  side_len = math.ceil(math.sqrt(len(projections)))
+  return rasterfairy.transformPointCloud2D(
+    projections, target=(side_len, side_len))
 
 
 if __name__ == '__main__':

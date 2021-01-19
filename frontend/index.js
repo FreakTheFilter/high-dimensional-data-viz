@@ -23,14 +23,11 @@
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
     for (let idx in data["filepaths"]) {
-      const sprite = loadImage(
-        data["filepaths"][idx],
-        data["projections"][idx]
-      );
+      const sprite = loadImage(data["filepaths"][idx], data["3d_projections"][idx]);
       scene.add(sprite);
     }
 
-    const cameraStart = data["projections"][0];
+    const cameraStart = data["3d_projections"][0];
     controls.target.set(cameraStart[0], cameraStart[1], cameraStart[2]);
     controls.update();
 
@@ -64,12 +61,7 @@
         controls.update();
       }
       scene.add(
-        new THREE.ArrowHelper(
-          raycaster.ray.direction,
-          raycaster.ray.origin,
-          300,
-          0xff0000
-        )
+        new THREE.ArrowHelper(raycaster.ray.direction, raycaster.ray.origin, 300, 0xff0000)
       );
 
       renderer.render(scene, camera);

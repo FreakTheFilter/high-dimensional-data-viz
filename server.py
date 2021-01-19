@@ -1,14 +1,11 @@
 import glob
-import json
 import os
 import time
 
 import embeddings as embeddings_lib
 from flask import Flask, jsonify, render_template, request, redirect, send_from_directory 
-import networkx as nx
 import pandas as pd
 from werkzeug.utils import secure_filename
-from sklearn.metrics.pairwise import cosine_similarity
 import zipfile
 
 
@@ -118,8 +115,12 @@ def upload_(req, load_cached=False):
     start = time.time()
     df = pd.DataFrame()
     df['embeddings'], df['filepaths'] = zip(*embeddings_filepaths)
-    projections = embeddings_lib.run_umap(df['embeddings'])
-    df['projections'] = pd.Series(list(projections), index=df.index)
+    projections_3d = embeddings_lib.run_umap(df['embeddings'])
+    projections_2d = embeddings_lib.run_umap(df['embeddings'], components=2)
+    grid_projections, _ = embeddings_lib.run_rasterfairy(projections_2d)
+    df['3d_projections'] = pd.Series(list(projections_3d), index=df.index)
+    df['2d_projections'] = pd.Series(list(projections_2d), index=df.index)
+    df['grid_projections'] = pd.Series(list(grid_projections), index=df.index)
     df.to_pickle(
       os.path.join(extract_path, CACHED_EMBEDDING_FILE))
     stop = time.time()
@@ -163,11 +164,6 @@ def main():
 
   app.run(debug=True, port=5000)
 
-
-# Upload images.
-#   Get embeddings for each image.
-#   Create graph.
-#   Return graph in d3--interpretable format (streaming?).
 
 if __name__ == '__main__':
   main()
